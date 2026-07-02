@@ -1,20 +1,37 @@
-# AI Search Engine
+# AISE — AI Search Engine
 
 Учебный проект для курса **Deep Learning for Search**.
 
-Пользователь вводит запрос вроде `"ИИ для футбола"` или `"модель для медицины"`, а система ищет наиболее подходящие AI-модели в датасете model cards.
+AISE помогает находить подходящие AI-модели по запросу пользователя.
+
+Примеры запросов:
+
+- `ИИ для футбола`
+- `модель для медицины`
+- `AI для написания кода`
+- `модель для анализа изображений`
+
+---
 
 ## MVP
 
-CLI-приложение на Python, которое постепенно объединит пять независимых модулей:
+CLI-приложение на Python, которое ищет релевантные AI-модели в датасете model cards.
 
-1. Data Ingestion / Dataset Processing
-2. Preprocessing / Document Building
-3. Embeddings + Vector Index
-4. Retrieval + Ranking
-5. Evaluation + Metrics
+---
 
-## Структура
+## Команда
+
+| Участник | Роль | Папка |
+|-----------|-------|--------|
+| Аяз | Data Ingestion / Dataset Processing | `participants/01_data_ingestion/` |
+| Дамир | Preprocessing / Document Building | `participants/02_preprocessing/` |
+| Имя | Embeddings + Vector Index | `participants/03_embeddings_index/` |
+| Малик | Retrieval + Ranking | `participants/04_retrieval_ranking/` |
+| Имя | Evaluation + Metrics | `participants/05_evaluation/` |
+
+---
+
+## Структура проекта
 
 ```text
 AISE/
@@ -45,42 +62,103 @@ AISE/
     └── test_contracts.py
 ```
 
-## Ответственность папок
-
-- `src/aise/` - общий код проекта: контракты, типы данных, CLI и будущая сборка pipeline.
-- `src/aise/contracts.py` - единые интерфейсы между модулями. Участники должны возвращать и принимать эти типы.
-- `src/aise/pipeline.py` - место, где позже будут соединены ingestion, preprocessing, indexing, retrieval и evaluation.
-- `participants/` - независимые рабочие папки участников. Каждый может писать свою реализацию, эксперименты и тесты внутри своей зоны.
-- `data/raw/` - исходные датасеты model cards.
-- `data/processed/` - очищенные документы и промежуточные таблицы.
-- `data/indexes/` - векторные индексы, BM25-индексы и другие поисковые артефакты.
-- `data/results/` - результаты запусков и evaluation-отчеты.
-- `notebooks/` - исследовательские ноутбуки, EDA и эксперименты.
-- `tests/` - общие тесты контрактов и интеграции.
+---
 
 ## Быстрый старт
 
+### Создание окружения
+
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+```
+
+Windows:
+
+```bash
+.venv\Scripts\activate
+```
+
+Linux/macOS:
+
+```bash
+source .venv/bin/activate
+```
+
+### Установка зависимостей
+
+```bash
 pip install -r requirements.txt
+```
+
+### Запуск
+
+```bash
+$env:PYTHONPATH="src"
 python -m aise.cli search "ИИ для футбола"
 ```
 
-Если пакет запускается из корня без установки, добавьте `src` в `PYTHONPATH`:
+---
 
-```bash
-export PYTHONPATH=src  # Windows PowerShell: $env:PYTHONPATH="src"
-```
+## Git Workflow
 
-## Контракт разработки
-
-Каждый модуль должен зависеть от общих типов из `src/aise/contracts.py`, а не от внутренних файлов других участников.
-
-Минимальный поток данных:
+Используем три типа веток:
 
 ```text
-raw dataset -> ModelCard -> SearchDocument -> embeddings/index -> SearchResult -> EvaluationReport
+main
+develop
+feature/*
 ```
 
-Такой подход позволяет разрабатывать части независимо и позже заменить любую реализацию без переписывания всего pipeline.
+### main
+Стабильная версия проекта.
+
+Прямые пуши запрещены.
+
+### develop
+Основная рабочая ветка команды.
+
+### feature/*
+Личные ветки участников.
+
+Пример:
+
+```bash
+git checkout develop
+git pull origin develop
+git checkout -b feature/retrieval-ranking
+```
+
+После работы:
+
+```bash
+git add .
+git commit -m "Add retrieval module"
+git push origin feature/retrieval-ranking
+```
+
+Далее создается Pull Request в `develop`.
+
+---
+
+## Правила работы
+
+1. Каждый работает в своей папке в `participants/`.
+2. Все изменения делаются через `feature/*`.
+3. Не пушим напрямую в `main`.
+4. Общие интерфейсы находятся в `src/aise/contracts.py`.
+5. Изменения общих контрактов обсуждаем с командой.
+
+---
+
+## Pipeline
+
+```text
+raw dataset
+→ ModelCard
+→ SearchDocument
+→ embeddings / index
+→ SearchResult
+→ EvaluationReport
+```
+
+Проект построен так, чтобы каждый участник мог работать независимо, а затем все части собирались в единый поисковый сервис.
