@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Project data artifacts
+data/raw/*
+data/processed/*
+data/indexes/*
+data/results/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/indexes/.gitkeep
+!data/results/.gitkeep
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Local diagnostics
+.write_probe
+
+# Local secrets/config
+.env
+*.local
