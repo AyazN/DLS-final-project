@@ -27,7 +27,7 @@ CLI-приложение на Python, которое ищет релевантн
 | Дамир | Preprocessing / Document Building | `participants/02_preprocessing/` |
 | Имя | Embeddings + Vector Index | `participants/03_embeddings_index/` |
 | Малик | Retrieval + Ranking | `participants/04_retrieval_ranking/` |
-| Имя | Evaluation + Metrics | `participants/05_evaluation/` |
+| Денис | Evaluation + Metrics | `participants/05_evaluation/` |
 
 ---
 
