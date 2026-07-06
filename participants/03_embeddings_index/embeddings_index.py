@@ -1,14 +1,23 @@
 from __future__ import annotations
 
-from aise.contracts import SearchDocument
+
+import numpy as np
+from abc import ABC, abstractmethod
 
 
-class EmbeddingVectorIndex:
-    def build(self, documents: list[SearchDocument]) -> None:
-        raise NotImplementedError
+class EmbeddingVectorIndex(ABC):
+    @abstractmethod
+    def build(self, vectors: np.ndarray) -> None:
+        pass
+    
+    @abstractmethod
+    def search(self, query: np.ndarray, k: int) -> tuple[np.ndarray, np.ndarray]:
+        pass
 
+    @abstractmethod
     def save(self, path: str) -> None:
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def load(self, path: str) -> None:
-        raise NotImplementedError
+        pass

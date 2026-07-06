@@ -1,37 +1,37 @@
 # AISE — AI Search Engine
 
-Учебный проект для курса **Deep Learning for Search**.
+Educational project for the **Deep Learning for Search** course.
 
-AISE помогает находить подходящие AI-модели по запросу пользователя.
+AISE helps find relevant AI models based on user queries.
 
-Примеры запросов:
+Example queries:
 
-- `ИИ для футбола`
-- `модель для медицины`
-- `AI для написания кода`
-- `модель для анализа изображений`
+* `AI for football`
+* `model for medicine`
+* `AI for code generation`
+* `model for image analysis`
 
 ---
 
 ## MVP
 
-CLI-приложение на Python, которое ищет релевантные AI-модели в датасете model cards.
+A Python CLI application that searches for relevant AI models in a model cards dataset.
 
 ---
 
-## Команда
+## Team
 
-| Участник | Роль | Папка |
-|-----------|-------|--------|
-| Аяз | Data Ingestion / Dataset Processing | `participants/01_data_ingestion/` |
-| Дамир | Preprocessing / Document Building | `participants/02_preprocessing/` |
-| Имя | Embeddings + Vector Index | `participants/03_embeddings_index/` |
-| Малик | Retrieval + Ranking | `participants/04_retrieval_ranking/` |
-| Имя | Evaluation + Metrics | `participants/05_evaluation/` |
+| Participant | Role                                | Folder                               |
+| ----------- | ----------------------------------- | ------------------------------------ |
+| Ayaz        | Data Ingestion + Dataset Processing | `participants/01_data_ingestion/`    |
+| Damir       | Embeddings + Vector Analysis   | `participants/02_preprocessing/`     |
+| Magomedgadzhi        | Vector Search + Indexing           | `participants/03_embeddings_index/`  |
+| Malik       | Retrieval + Ranking                 | `participants/04_retrieval_ranking/` |
+| Denis       | Evaluation + Metrics                | `participants/05_evaluation/`        |
 
 ---
 
-## Структура проекта
+## Project Structure
 
 ```text
 AISE/
@@ -64,9 +64,9 @@ AISE/
 
 ---
 
-## Быстрый старт
+## Quick Start
 
-### Создание окружения
+### Create environment
 
 ```bash
 python -m venv .venv
@@ -84,24 +84,28 @@ Linux/macOS:
 source .venv/bin/activate
 ```
 
-### Установка зависимостей
+---
+
+### Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### Запуск
+---
+
+### Run
 
 ```bash
 $env:PYTHONPATH="src"
-python -m aise.cli search "ИИ для футбола"
+python -m aise.cli search "AI for football"
 ```
 
 ---
 
 ## Git Workflow
 
-Используем три типа веток:
+We use three types of branches:
 
 ```text
 main
@@ -110,17 +114,20 @@ feature/*
 ```
 
 ### main
-Стабильная версия проекта.
 
-Прямые пуши запрещены.
+Stable version of the project.
+
+Direct pushes are forbidden.
 
 ### develop
-Основная рабочая ветка команды.
+
+Main working branch of the team.
 
 ### feature/*
-Личные ветки участников.
 
-Пример:
+Individual participant branches.
+
+Example:
 
 ```bash
 git checkout develop
@@ -128,7 +135,7 @@ git pull origin develop
 git checkout -b feature/retrieval-ranking
 ```
 
-После работы:
+After work:
 
 ```bash
 git add .
@@ -136,17 +143,17 @@ git commit -m "Add retrieval module"
 git push origin feature/retrieval-ranking
 ```
 
-Далее создается Pull Request в `develop`.
+Then create a Pull Request into `develop`.
 
 ---
 
-## Правила работы
+## Rules of Work
 
-1. Каждый работает в своей папке в `participants/`.
-2. Все изменения делаются через `feature/*`.
-3. Не пушим напрямую в `main`.
-4. Общие интерфейсы находятся в `src/aise/contracts.py`.
-5. Изменения общих контрактов обсуждаем с командой.
+1. Everyone works in their own folder under `participants/`.
+2. All changes are made via `feature/*` branches.
+3. No direct pushes to `main`.
+4. Shared interfaces are defined in `src/aise/contracts.py`.
+5. Changes to shared contracts must be discussed with the team.
 
 ---
 
@@ -161,4 +168,4 @@ raw dataset
 → EvaluationReport
 ```
 
-Проект построен так, чтобы каждый участник мог работать независимо, а затем все части собирались в единый поисковый сервис.
+The project is designed so that each participant can work independently, and then all components are assembled into a unified search service.
