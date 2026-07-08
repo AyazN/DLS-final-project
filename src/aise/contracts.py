@@ -96,7 +96,7 @@ class Retriever(Protocol):
         """Return initial candidates for a query."""
 
 
-class Ranker(Protocol):
+class Reranker(Protocol):
     def rank(self, query: Query, candidates: Sequence[SearchResult]) -> Sequence[SearchResult]:
         """Re-rank candidate results."""
 
