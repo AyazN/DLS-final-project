@@ -21,13 +21,13 @@ A Python CLI application that searches for relevant AI models in a model cards d
 
 ## Team
 
-| Participant | Role                                | Folder                               |
-| ----------- | ----------------------------------- | ------------------------------------ |
-| Ayaz        | Data Ingestion + Dataset Processing | `participants/01_data_ingestion/`    |
-| Damir       | Embeddings + Vector Analysis   | `participants/02_preprocessing/`     |
-| Magomedgadzhi        | Vector Search + Indexing           | `participants/03_embeddings_index/`  |
-| Malik       | Retrieval + Ranking                 | `participants/04_retrieval_ranking/` |
-| Denis       | Evaluation + Metrics                | `participants/05_evaluation/`        |
+| Participant | Role                                | Folder                                        |
+| ----------- | ----------------------------------- |-----------------------------------------------|
+| Ayaz        | Data Ingestion + Dataset Processing | `participants/01_data_ingestion/`             |
+| Damir       | Embeddings + Vector Analysis   | `participants/02_embeddings_vector_analysis/` |
+| Magomedgadzhi        | Vector Search + Indexing           | `participants/03_search_index/`               |
+| Malik       | Retrieval + Ranking                 | `participants/04_retrieval_ranking/`          |
+| Denis       | Evaluation + Metrics                | `participants/05_evaluation/`                 |
 
 ---
 
