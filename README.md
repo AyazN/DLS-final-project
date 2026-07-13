@@ -1,171 +1,99 @@
-# AISE — AI Search Engine
+# AISE - AI Search Engine
 
-Educational project for the **Deep Learning for Search** course.
+A project for the Deep Learning for Search course. The system searches for suitable AI models in a Hugging Face model-card dataset.
 
-AISE helps find relevant AI models based on user queries.
+## Architecture
 
-Example queries:
+The team implementations are located under participants:
 
-* `AI for football`
-* `model for medicine`
-* `AI for code generation`
-* `model for image analysis`
+| Role | Directory |
+|---|---|
+| Data ingestion / preprocessing | participants/01_preprocess |
+| Embeddings / vector analysis | participants/02_embeddings_vector_analysis |
+| FAISS indexes | participants/03_search_index |
+| BM25, Dense, RRF, Hybrid, Reranker | participants/04_retrieval_ranking |
+| Evaluation and metrics | participants/05_evaluation |
 
----
+The shared src/aise layer does not duplicate participant algorithms:
 
-## MVP
-
-A Python CLI application that searches for relevant AI models in a model cards dataset.
-
----
-
-## Team
-
-| Participant | Role                                | Folder                                        |
-| ----------- | ----------------------------------- |-----------------------------------------------|
-| Ayaz        | Data Ingestion + Dataset Processing | `participants/01_data_ingestion/`             |
-| Damir       | Embeddings + Vector Analysis   | `participants/02_embeddings_vector_analysis/` |
-| Magomedgadzhi        | Vector Search + Indexing           | `participants/03_search_index/`               |
-| Malik       | Retrieval + Ranking                 | `participants/04_retrieval_ranking/`          |
-| Denis       | Evaluation + Metrics                | `participants/05_evaluation/`                 |
-
----
-
-## Project Structure
-
-```text
-AISE/
-├── config.py
-├── requirements.txt
-├── README.md
-├── .gitignore
-├── data/
-│   ├── raw/
-│   ├── processed/
-│   ├── indexes/
-│   └── results/
-├── notebooks/
-├── participants/
-│   ├── 01_data_ingestion/
-│   ├── 02_preprocessing/
-│   ├── 03_embeddings_index/
-│   ├── 04_retrieval_ranking/
-│   └── 05_evaluation/
-├── src/
-│   └── aise/
-│       ├── __init__.py
-│       ├── cli.py
-│       ├── contracts.py
-│       └── pipeline.py
-└── tests/
-    ├── conftest.py
-    └── test_contracts.py
-```
-
----
-
-## Quick Start
-
-### Create environment
-
-```bash
-python -m venv .venv
-```
-
-Windows:
-
-```bash
-.venv\Scripts\activate
-```
-
-Linux/macOS:
-
-```bash
-source .venv/bin/activate
-```
-
----
-
-### Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-### Run
-
-```bash
-$env:PYTHONPATH="src"
-python -m aise.cli search "AI for football"
-```
-
----
-
-## Git Workflow
-
-We use three types of branches:
-
-```text
-main
-develop
-feature/*
-```
-
-### main
-
-Stable version of the project.
-
-Direct pushes are forbidden.
-
-### develop
-
-Main working branch of the team.
-
-### feature/*
-
-Individual participant branches.
-
-Example:
-
-```bash
-git checkout develop
-git pull origin develop
-git checkout -b feature/retrieval-ranking
-```
-
-After work:
-
-```bash
-git add .
-git commit -m "Add retrieval module"
-git push origin feature/retrieval-ranking
-```
-
-Then create a Pull Request into `develop`.
-
----
-
-## Rules of Work
-
-1. Everyone works in their own folder under `participants/`.
-2. All changes are made via `feature/*` branches.
-3. No direct pushes to `main`.
-4. Shared interfaces are defined in `src/aise/contracts.py`.
-5. Changes to shared contracts must be discussed with the team.
-
----
+- contracts.py defines shared data structures and Protocol contracts;
+- pipeline.py orchestrates Retriever and Reranker calls;
+- cli.py loads artifacts and assembles participant modules into a pipeline.
 
 ## Pipeline
 
-```text
-raw dataset
-→ ModelCard
-→ SearchDocument
-→ embeddings / index
-→ SearchResult
-→ EvaluationReport
-```
+~~~text
+participants/01: clean_dataset.parquet
+    -> participants/02: texts + embeddings
+    -> participants/03: FAISS index
+    -> participants/04: BM25 / Dense / RRF / Reranker
+    -> participants/05: EvaluationReport
+~~~
 
-The project is designed so that each participant can work independently, and then all components are assembled into a unified search service.
+## Quick Start on Windows PowerShell
+
+Run every command from the project root.
+
+Create the virtual environment and install all dependencies:
+
+~~~powershell
+python -m venv .venv; ./.venv/Scripts/python.exe -m pip install -r requirements.txt
+~~~
+
+Download and clean the dataset:
+
+~~~powershell
+./.venv/Scripts/python.exe participants/01_preprocess/data_load.py
+~~~
+
+Generate a small embedding sample for a smoke test:
+
+~~~powershell
+./.venv/Scripts/python.exe participants/02_embeddings_vector_analysis/generate_embeddings.py --input data/processed/clean_dataset.parquet --models sentence-transformers/all-MiniLM-L6-v2 --limit 100 --batch-size 32 --overwrite
+~~~
+
+Run BM25 search:
+
+~~~powershell
+$env:PYTHONPATH="src"; ./.venv/Scripts/python.exe -m aise.cli search "AI for football" --mode bm25
+~~~
+
+Run dense search with the generated embeddings:
+
+~~~powershell
+$env:PYTHONPATH="src"; ./.venv/Scripts/python.exe -m aise.cli search "model for medicine" --mode dense --embedding-dir data/processed/embeddings/sentence-transformers__all-MiniLM-L6-v2
+~~~
+
+Run hybrid search:
+
+~~~powershell
+$env:PYTHONPATH="src"; ./.venv/Scripts/python.exe -m aise.cli search "model for medicine" --mode hybrid --embedding-dir data/processed/embeddings/sentence-transformers__all-MiniLM-L6-v2
+~~~
+
+Run all tests:
+
+~~~powershell
+$env:PYTHONPATH="src"; ./.venv/Scripts/python.exe -m unittest discover -s tests -v
+~~~
+
+## Quick Start on Linux or macOS
+
+Create the virtual environment and install dependencies:
+
+~~~bash
+python3 -m venv .venv && ./.venv/bin/python -m pip install -r requirements.txt
+~~~
+
+Run the same scripts with ./.venv/bin/python. For example:
+
+~~~bash
+PYTHONPATH=src ./.venv/bin/python -m unittest discover -s tests -v
+~~~
+
+## Embedding Experiments
+
+All embedding commands are documented as copy-ready one-line commands in participants/02_embeddings_vector_analysis/README.md.
+
+## Integration Notes
+
+The CLI loads implementations directly from participants through importlib. Numeric participant directory names cannot be referenced with regular static imports, so the integration layer uses import_module.

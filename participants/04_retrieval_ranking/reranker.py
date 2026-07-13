@@ -1,18 +1,16 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import replace
+from typing import Any
 
-from aise.contracts import (
-    Query,
-    SearchResult,
-    Reranker,
-)
+import numpy as np
+
+from aise.contracts import Query, Reranker, SearchResult
 
 
 class CrossEncoderReranker(Reranker):
-    def __init__(self, model):
-        # TODO:
-        # Select and integrate the final CrossEncoder model.
+    def __init__(self, model: Any) -> None:
         self.model = model
 
     def rank(
@@ -20,33 +18,26 @@ class CrossEncoderReranker(Reranker):
         query: Query,
         candidates: Sequence[SearchResult],
     ) -> Sequence[SearchResult]:
+        if not candidates:
+            return []
 
         pairs = [
-            (query.text, candidate.snippet)
+            (query.text, candidate.snippet or candidate.title)
             for candidate in candidates
         ]
-
-        scores = self.model.predict(pairs)
+        scores = np.asarray(self.model.predict(pairs)).reshape(-1)
+        if len(scores) != len(candidates):
+            raise ValueError("Reranker returned an invalid number of scores.")
 
         ranked = sorted(
             zip(candidates, scores),
-            key=lambda x: x[1],
+            key=lambda item: float(item[1]),
             reverse=True,
         )
-
-        results: list[SearchResult] = []
-
-        for rank, (candidate, score) in enumerate(ranked, start=1):
-            results.append(
-                SearchResult(
-                    doc_id=candidate.doc_id,
-                    model_id=candidate.model_id,
-                    score=float(score),
-                    rank=rank,
-                    title=candidate.title,
-                    snippet=candidate.snippet,
-                    metadata=candidate.metadata,
-                )
+        return [
+            replace(candidate, score=float(score), rank=rank)
+            for rank, (candidate, score) in enumerate(
+                ranked[: query.top_k],
+                start=1,
             )
-
-        return results
+        ]

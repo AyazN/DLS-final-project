@@ -1,11 +1,12 @@
 # 04 Retrieval + Ranking
 
-Ответственность:
+This directory contains the team's retrieval and ranking implementation:
 
-- BM25 retrieval;
-- dense retrieval;
-- объединение результатов через RRF;
-- reranking кандидатов;
-- возвращение списка `SearchResult`.
+- tokenizer.py provides tokenization;
+- bm25.py provides BM25Retriever;
+- dense.py provides DenseRetriever;
+- rrf.py provides ReciprocalRankFusion;
+- hybrid.py provides HybridRetriever;
+- reranker.py provides CrossEncoderReranker.
 
-Ожидаемый выход модуля: retriever/ranker, совместимые с `Retriever` и `Ranker`.
+Retriever classes implement the shared Retriever.search(Query) contract. CrossEncoderReranker implements Reranker.rank(Query, candidates). Every stage returns a sequence of SearchResult objects.

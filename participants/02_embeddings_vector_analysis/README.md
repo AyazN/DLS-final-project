@@ -1,167 +1,107 @@
-# 02 — Embeddings + Vector Analysis
+# 02 - Embeddings and Vector Analysis
 
-This module is responsible for the representation stage of the AISE search pipeline.
-It takes the cleaned Hugging Face model-card dataset, builds searchable text representations,
-generates dense embeddings, analyzes the vector space, and provides a PCA-based shrink step.
-
-Pipeline position:
-
-```text
-clean_dataset.parquet
-        ↓
-text representation = model_id + task + library + tags + languages + model card
-        ↓
-sentence-transformer encoder
-        ↓
-embeddings.npy + ids.npy + metadata.parquet
-        ↓
-FAISS / retrieval / evaluation
-```
-
-## Why this module exists
-
-Project requirements ask us to select a representation model, generate vectors, analyze generated
-vectors, and use this analysis to shrink the representation. This folder covers exactly that part:
-
-- dense representation model selection;
-- embedding generation for model cards;
-- comparison of two encoders: MiniLM and BGE-small;
-- vector statistics and PCA/cluster analysis;
-- PCA dimensionality reduction as a cheap representation shrink optimization.
+This module builds searchable text representations, generates dense embeddings, analyzes the vector space, and optionally reduces embedding dimensions with PCA.
 
 ## Files
 
-```text
-embedding_utils.py          shared helper functions and loading helpers
-generate_embeddings.py      generate dense embeddings and metadata artifacts
-analyze_embeddings.py       analyze vector norms, cosine distribution, PCA, clusters
-shrink_embeddings.py        reduce embedding dimensionality with PCA
-run_embedding_experiment.py convenience script for two-encoder experiments
-README.md                   this file
-```
+~~~text
+embedding_utils.py          Shared loading and formatting helpers
+generate_embeddings.py      Generates embeddings and metadata artifacts
+analyze_embeddings.py       Computes vector statistics, PCA, and clusters
+shrink_embeddings.py        Reduces dimensions with PCA
+run_embedding_experiment.py Runs generation, analysis, and PCA as one workflow
+~~~
 
-## Expected input
+## Input
 
-Default input:
+The default input file is:
 
-```text
+~~~text
 data/processed/clean_dataset.parquet
-```
+~~~
 
 Expected columns:
 
-```text
+~~~text
 model_id, likes, downloads, tags, pipeline_tag, library_name, createdAt, languages, modelCard
-```
+~~~
 
-## Install dependencies
+Run all commands below from the project root.
 
-From the project root:
+## Install Dependencies
 
-```bash
-pip install -r requirements.txt
-```
+Windows PowerShell:
 
-If your environment cannot read parquet or cannot save plots, add:
+~~~powershell
+python -m venv .venv; ./.venv/Scripts/python.exe -m pip install -r requirements.txt
+~~~
 
-```bash
-pip install pyarrow matplotlib joblib sentence-transformers scikit-learn
-```
+Linux or macOS:
 
-## Recommended smoke test: two encoders on 5k rows
+~~~bash
+python3 -m venv .venv && ./.venv/bin/python -m pip install -r requirements.txt
+~~~
 
-This is the safest way to test the whole module without freezing a laptop:
+## Fast Smoke Test
 
-```bash
-python participants/02_embeddings_vector_analysis/run_embedding_experiment.py \
-  --input data/processed/clean_dataset.parquet \
-  --models sentence-transformers/all-MiniLM-L6-v2 BAAI/bge-small-en-v1.5 \
-  --limit 5000 \
-  --batch-size 64 \
-  --analyze \
-  --shrink-baseline \
-  --overwrite
-```
+Generate MiniLM embeddings for 100 rows:
 
-This generates two embedding folders:
+~~~powershell
+./.venv/Scripts/python.exe participants/02_embeddings_vector_analysis/generate_embeddings.py --input data/processed/clean_dataset.parquet --models sentence-transformers/all-MiniLM-L6-v2 --limit 100 --batch-size 32 --overwrite
+~~~
 
-```text
-data/processed/embeddings/sentence-transformers__all-MiniLM-L6-v2/
-data/processed/embeddings/BAAI__bge-small-en-v1.5/
-```
+Expected output directory:
 
-## Larger experiment on 50k rows
+~~~text
+data/processed/embeddings/sentence-transformers__all-MiniLM-L6-v2
+~~~
 
-```bash
-python participants/02_embeddings_vector_analysis/run_embedding_experiment.py \
-  --input data/processed/clean_dataset.parquet \
-  --models sentence-transformers/all-MiniLM-L6-v2 BAAI/bge-small-en-v1.5 \
-  --limit 50000 \
-  --batch-size 64 \
-  --analysis-sample-size 10000 \
-  --fit-sample-size 10000 \
-  --analyze \
-  --shrink-baseline \
-  --overwrite
-```
+## Complete 5k Experiment
 
-## Full dataset generation with resume support
+This single command generates embeddings for MiniLM and BGE-small, analyzes both models, and creates PCA-128 embeddings for MiniLM:
 
-For 500k/600k rows, use `--resume` if a previous run was interrupted.
-The script writes `ids.npy`, `metadata.parquet`, and `progress.json` early, so downstream row mapping stays aligned.
+~~~powershell
+./.venv/Scripts/python.exe participants/02_embeddings_vector_analysis/run_embedding_experiment.py --input data/processed/clean_dataset.parquet --models sentence-transformers/all-MiniLM-L6-v2 BAAI/bge-small-en-v1.5 --limit 5000 --batch-size 64 --analysis-sample-size 5000 --n-clusters 12 --target-dim 128 --fit-sample-size 5000 --analyze --shrink-baseline --overwrite
+~~~
 
-Fresh full MiniLM run:
+Expected model directories:
 
-```bash
-python participants/02_embeddings_vector_analysis/generate_embeddings.py \
-  --input data/processed/clean_dataset.parquet \
-  --models sentence-transformers/all-MiniLM-L6-v2 \
-  --batch-size 64 \
-  --max-model-card-chars 2500 \
-  --overwrite
-```
+~~~text
+data/processed/embeddings/sentence-transformers__all-MiniLM-L6-v2
+data/processed/embeddings/BAAI__bge-small-en-v1.5
+~~~
 
-Resume interrupted MiniLM run:
+## Complete 50k Experiment
 
-```bash
-python participants/02_embeddings_vector_analysis/generate_embeddings.py \
-  --input data/processed/clean_dataset.parquet \
-  --models sentence-transformers/all-MiniLM-L6-v2 \
-  --batch-size 64 \
-  --max-model-card-chars 2500 \
-  --resume
-```
+~~~powershell
+./.venv/Scripts/python.exe participants/02_embeddings_vector_analysis/run_embedding_experiment.py --input data/processed/clean_dataset.parquet --models sentence-transformers/all-MiniLM-L6-v2 BAAI/bge-small-en-v1.5 --limit 50000 --batch-size 64 --analysis-sample-size 10000 --n-clusters 12 --target-dim 128 --fit-sample-size 10000 --analyze --shrink-baseline --overwrite
+~~~
 
-For CPU-only machines, start from `--limit 5000` or `--limit 50000`. The full dataset can take a long time.
+## Generate Full Embeddings
 
-## Generated files per model
+Start a fresh MiniLM run:
 
-```text
-embeddings.npy                     float32 matrix, shape = (n_docs, dim)
-ids.npy                            model_id for every embedding row
-metadata.parquet                   lightweight metadata without long modelCard text
-run_config.json                    run settings and embedding shape
-progress.json                      completed rows for resume/debugging
-text_representation_samples.json   examples of the exact text sent to the encoder
-```
+~~~powershell
+./.venv/Scripts/python.exe participants/02_embeddings_vector_analysis/generate_embeddings.py --input data/processed/clean_dataset.parquet --models sentence-transformers/all-MiniLM-L6-v2 --batch-size 64 --max-model-card-chars 2500 --overwrite
+~~~
 
-Embeddings are L2-normalized by default. This is useful because FAISS `IndexFlatL2` over normalized
-vectors gives the same ranking as cosine similarity.
+Resume an interrupted MiniLM run:
 
-## Analyze embeddings
+~~~powershell
+./.venv/Scripts/python.exe participants/02_embeddings_vector_analysis/generate_embeddings.py --input data/processed/clean_dataset.parquet --models sentence-transformers/all-MiniLM-L6-v2 --batch-size 64 --max-model-card-chars 2500 --resume
+~~~
 
-Example:
+Do not combine --overwrite and --resume.
 
-```bash
-python participants/02_embeddings_vector_analysis/analyze_embeddings.py \
-  --embedding-dir data/processed/embeddings/sentence-transformers__all-MiniLM-L6-v2 \
-  --sample-size 10000 \
-  --n-clusters 12
-```
+## Analyze Existing Embeddings
 
-Output:
+~~~powershell
+./.venv/Scripts/python.exe participants/02_embeddings_vector_analysis/analyze_embeddings.py --embedding-dir data/processed/embeddings/sentence-transformers__all-MiniLM-L6-v2 --sample-size 10000 --n-clusters 12
+~~~
 
-```text
+Analysis output is written under the model directory:
+
+~~~text
 analysis/analysis_summary.json
 analysis/pca_2d.csv
 analysis/pca_explained_variance.csv
@@ -169,64 +109,57 @@ analysis/cluster_assignments_sample.csv
 analysis/cluster_summary.csv
 analysis/pca_2d_by_pipeline_tag.png
 analysis/pca_explained_variance.png
-```
+~~~
 
-What to discuss in the presentation:
+## Reduce Embeddings with PCA
 
-- vector norms show whether embeddings are normalized;
-- random-pair cosine distribution shows anisotropy / concentration;
-- PCA projection shows whether similar model tasks cluster together;
-- cluster summary shows top pipeline tags and libraries per embedding cluster.
+Reduce 384 dimensions to 128:
 
-## Shrink embeddings with PCA
+~~~powershell
+./.venv/Scripts/python.exe participants/02_embeddings_vector_analysis/shrink_embeddings.py --embedding-dir data/processed/embeddings/sentence-transformers__all-MiniLM-L6-v2 --target-dim 128 --fit-sample-size 100000 --batch-size 50000 --overwrite
+~~~
 
-Example: reduce 384 dimensions to 128 dimensions.
+Expected output directory:
 
-```bash
-python participants/02_embeddings_vector_analysis/shrink_embeddings.py \
-  --embedding-dir data/processed/embeddings/sentence-transformers__all-MiniLM-L6-v2 \
-  --target-dim 128 \
-  --fit-sample-size 100000 \
-  --batch-size 50000 \
-  --overwrite
-```
+~~~text
+data/processed/embeddings/sentence-transformers__all-MiniLM-L6-v2/pca128
+~~~
 
-Output folder:
+Approximate storage:
 
-```text
-data/processed/embeddings/sentence-transformers__all-MiniLM-L6-v2/pca128/
-```
+~~~text
+600000 x 384 float32 = 879 MB
+600000 x 128 float32 = 293 MB
+~~~
 
-Example memory reduction:
+## Generated Artifacts
 
-```text
-600000 × 384 float32 ≈ 879 MB
-600000 × 128 float32 ≈ 293 MB
-```
+Each model directory contains:
 
-So PCA-128 reduces embedding storage by about 3x. The indexing/evaluation participants can compare
-whether this smaller representation keeps enough search quality while improving memory and latency.
+~~~text
+embeddings.npy
+ids.npy
+metadata.parquet
+run_config.json
+progress.json
+text_representation_samples.json
+~~~
 
-## Notes for downstream retrieval
+The row returned by FAISS maps to the same row in ids.npy and metadata.parquet.
 
-The index stage can load produced artifacts with the helper:
+## Load Artifacts in Python
 
-```python
-from participants.02_embeddings_vector_analysis.embedding_utils import load_embedding_artifacts
+~~~python
+from importlib import import_module
 
-embeddings, ids, metadata = load_embedding_artifacts(
-    "data/processed/embeddings/sentence-transformers__all-MiniLM-L6-v2"
-)
-```
+embedding_utils = import_module("participants.02_embeddings_vector_analysis.embedding_utils")
+embeddings, ids, metadata = embedding_utils.load_embedding_artifacts("data/processed/embeddings/sentence-transformers__all-MiniLM-L6-v2")
+~~~
 
-The row index returned by FAISS corresponds to the same row in `ids.npy` and `metadata.parquet`.
+## Linux or macOS Commands
 
-BGE query-side formatting: document embeddings are generated normally, but query embeddings for BGE should use an instruction prefix. Use:
+The arguments are identical. Replace ./.venv/Scripts/python.exe with ./.venv/bin/python. Example:
 
-```python
-from embedding_utils import format_query_for_encoder
-
-query_text = format_query_for_encoder("image classification model", "BAAI/bge-small-en-v1.5")
-```
-
-MiniLM does not need a query prefix.
+~~~bash
+./.venv/bin/python participants/02_embeddings_vector_analysis/run_embedding_experiment.py --input data/processed/clean_dataset.parquet --models sentence-transformers/all-MiniLM-L6-v2 BAAI/bge-small-en-v1.5 --limit 5000 --batch-size 64 --analyze --shrink-baseline --overwrite
+~~~

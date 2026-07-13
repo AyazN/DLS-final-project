@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Any
 
-from aise.contracts import (
-    Query,
-    SearchDocument,
-    SearchResult,
-    Retriever,
-    VectorIndex
-)
+import numpy as np
+
+from aise.contracts import Query, Retriever, SearchDocument, SearchResult, VectorIndex
 
 
 class DenseRetriever(Retriever):
@@ -16,54 +13,43 @@ class DenseRetriever(Retriever):
         self,
         index: VectorIndex,
         documents: Sequence[SearchDocument],
-        model,
-    ):
-        # TODO:
-        # Replace with the final embedding model and FAISS index
-        # after the embeddings module is integrated.
+        model: Any,
+    ) -> None:
+        if not documents:
+            raise ValueError("DenseRetriever requires at least one document.")
         self.index = index
-        self.documents = documents
+        self.documents = list(documents)
         self.model = model
 
     def search(self, query: Query) -> Sequence[SearchResult]:
-        # TODO:
-        # Load the production embedding model and FAISS index
-        # after the embeddings pipeline is completed.
-
-        # get request's embedding
-        query_vector = self.model.encode(
-            [query.text],
-            convert_to_numpy=True,
+        query_vector = np.asarray(
+            self.model.encode([query.text], convert_to_numpy=True),
+            dtype=np.float32,
         )
+        if query_vector.ndim == 1:
+            query_vector = query_vector.reshape(1, -1)
 
-        # looking for the nearests documents
-        scores, indices = self.index.search(
-            query_vector,
-            query.top_k,
-        )
-
+        scores, indices = self.index.search(query_vector, query.top_k)
         results: list[SearchResult] = []
-
-        for rank, (score, idx) in enumerate(
-            zip(scores[0], indices[0]),
-            start=1,
-        ):
-            # FAISS can return -1, if the number of results is less than top_k
-            if idx < 0:
+        for score, raw_index in zip(scores[0], indices[0]):
+            index = int(raw_index)
+            if index < 0:
                 continue
-
-            doc = self.documents[idx]
-
+            if index >= len(self.documents):
+                raise IndexError(
+                    f"Vector index returned row {index}, but only "
+                    f"{len(self.documents)} documents are loaded."
+                )
+            document = self.documents[index]
             results.append(
                 SearchResult(
-                    doc_id=doc.doc_id,
-                    model_id=doc.model_id,
+                    doc_id=document.doc_id,
+                    model_id=document.model_id,
                     score=float(score),
-                    rank=rank,
-                    title=doc.title,
-                    snippet=doc.body[:200],
-                    metadata=doc.metadata,
+                    rank=len(results) + 1,
+                    title=document.title,
+                    snippet=document.body[:500],
+                    metadata=document.metadata,
                 )
             )
-
         return results

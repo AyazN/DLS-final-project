@@ -13,3 +13,4 @@ psutil>=5.9
 pyarrow>=16.0
 matplotlib>=3.8
 joblib>=1.4
+datasets>=3.0

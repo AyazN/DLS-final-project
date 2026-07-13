@@ -169,6 +169,7 @@ def main() -> int:
     run_config = {
         **source_config,
         "representation_type": "pca_reduced_embeddings",
+        "source_normalized": bool(source_config.get("normalized", False)),
         "source_embedding_dir": str(args.embedding_dir),
         "embedding_shape": [int(n_vectors), int(args.target_dim)],
         "embedding_dtype": "float32",

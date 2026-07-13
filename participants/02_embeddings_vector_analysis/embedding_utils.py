@@ -46,12 +46,21 @@ def safe_model_dir_name(model_name: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]+", "__", model_name.strip())
 
 
+def _is_missing_scalar(value: Any) -> bool:
+    if value is None:
+        return True
+    if isinstance(value, (list, tuple, set, dict, np.ndarray)):
+        return False
+    try:
+        missing = pd.isna(value)
+    except (TypeError, ValueError):
+        return False
+    return bool(missing) if isinstance(missing, (bool, np.bool_)) else False
+
+
 def parse_list_value(value: Any) -> list[str]:
     """Normalize tags/languages values that may arrive as lists, tuples, arrays, strings, or NaNs."""
-    if value is None:
-        return []
-
-    if isinstance(value, float) and math.isnan(value):
+    if _is_missing_scalar(value):
         return []
 
     if isinstance(value, np.ndarray):
@@ -81,9 +90,7 @@ def parse_list_value(value: Any) -> list[str]:
 
 def compact_text(value: Any, max_chars: int | None = None) -> str:
     """Convert a field to clean one-line-ish text and optionally truncate it."""
-    if value is None:
-        return ""
-    if isinstance(value, float) and math.isnan(value):
+    if _is_missing_scalar(value):
         return ""
     text = str(value)
     text = re.sub(r"\s+", " ", text).strip()

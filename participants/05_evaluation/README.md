@@ -1,11 +1,10 @@
 # 05 Evaluation + Metrics
 
-Ответственность:
+RetrievalEvaluator computes Precision@K, Recall@K, MRR, and nDCG@K.
 
-- подготовка labeled queries;
-- расчет Recall@K, Precision@K, MRR, nDCG;
-- сравнение BM25, dense, hybrid, reranker;
-- сохранение отчетов в `data/results/`;
-- помощь в выборе лучшей конфигурации pipeline.
+The evaluator uses the shared contracts:
 
-Ожидаемый выход модуля: `EvaluationReport`.
+- it calls Retriever.search(Query);
+- it compares SearchResult.model_id with EvaluationExample.relevant_model_ids;
+- it returns an EvaluationReport;
+- it can save a JSON report under data/results.
