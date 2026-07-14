@@ -21,9 +21,32 @@ class CrossEncoderReranker:
         self.document_text_key = document_text_key
 
     def _document_text(self, candidate: SearchResult) -> str:
-        full_text = candidate.metadata.get(self.document_text_key, "")
-        useful_text = str(full_text).strip() or candidate.snippet.strip() or candidate.title
-        return f"{candidate.title}\n{useful_text}" if candidate.title else useful_text
+        """Build deterministic reranking text.
+
+        Mirrors the structured fields (model id, task, tags) that the dense
+        retriever's embedding text already includes, plus the body/snippet.
+        Without these fields the cross-encoder only sees free text and drifts
+        from candidates that were retrieved via pipeline_tag/tag matches.
+        """
+        metadata = candidate.metadata
+        body = str(metadata.get(self.document_text_key, "")).strip() or candidate.snippet.strip()
+
+        pipeline_tag = str(metadata.get("pipeline_tag") or metadata.get("task") or "").strip()
+
+        tags = metadata.get("tags") or ()
+        if isinstance(tags, str):
+            tags = [tags]
+        tags_text = ", ".join(str(tag).strip() for tag in list(tags)[:10] if str(tag).strip())
+
+        parts = [
+            f"Title: {candidate.title}" if candidate.title else "",
+            f"Model ID: {candidate.model_id}" if candidate.model_id else "",
+            f"Task: {pipeline_tag}" if pipeline_tag else "",
+            f"Tags: {tags_text}" if tags_text else "",
+            body,
+        ]
+        text = "\n".join(part for part in parts if part)
+        return text or candidate.title or candidate.model_id
 
     def rank(
         self,
