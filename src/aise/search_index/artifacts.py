@@ -109,6 +109,7 @@ def load_search_documents(
     *,
     processed_metadata_path: str | Path | None = None,
     max_body_chars: int | None = None,
+    include_metadata: bool = True,
 ) -> list[SearchDocument]:
     """Create row-aligned search documents for lexical retrieval and reranking.
 
@@ -147,7 +148,7 @@ def load_search_documents(
     documents: list[SearchDocument] = []
     artifact_ids = artifacts.ids.astype(str)
     for position, doc_id in enumerate(artifact_ids):
-        meta_row = metadata.iloc[position].to_dict()
+        meta_row = metadata.iloc[position].to_dict() if include_metadata else {}
         source_row = source.iloc[position]
         model_id = _first_value(source_row, ("model_id",), default=doc_id)
         title = _first_value(source_row, ("title", "name"), default=model_id)
