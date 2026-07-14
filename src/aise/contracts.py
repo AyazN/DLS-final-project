@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Mapping, Protocol, Sequence
 
+import numpy as np
+
 
 Metadata = Mapping[str, Any]
 
@@ -81,8 +83,15 @@ class DocumentBuilder(Protocol):
 
 
 class VectorIndex(Protocol):
-    def build(self, documents: Sequence[SearchDocument]) -> None:
-        """Build or update the index from documents."""
+    dim: int
+    metric: str
+    higher_is_better: bool
+
+    def build(self, vectors: np.ndarray) -> None:
+        """Build the index from a two-dimensional float32 vector matrix."""
+
+    def search(self, query: np.ndarray, k: int) -> tuple[np.ndarray, np.ndarray]:
+        """Return scores or distances and integer vector positions."""
 
     def save(self, path: str) -> None:
         """Persist index artifacts."""
