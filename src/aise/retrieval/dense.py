@@ -50,6 +50,7 @@ class DenseRetriever:
             )
             result.update(row.to_dict() if hasattr(row, "to_dict") else dict(row))
         result.setdefault("body", doc.body)
+        result.setdefault("tags", doc.tags)
         result["dense_metric"] = self.index.metric
         result["score_direction"] = (
             "higher_is_better" if self.index.higher_is_better else "lower_is_better"

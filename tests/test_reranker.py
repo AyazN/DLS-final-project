@@ -154,11 +154,43 @@ def test_text_strategy_length_is_bounded() -> None:
     assert len(reranker._document_text(candidate)) <= 200
 
 
-def test_invalid_text_strategy_rejected() -> None:
+def test_invalid_text_configuration_rejected() -> None:
     import pytest
 
     with pytest.raises(ValueError):
         CrossEncoderReranker(FakeCrossEncoder(), text_strategy="not-a-strategy")
+    with pytest.raises(ValueError):
+        CrossEncoderReranker(FakeCrossEncoder(), max_text_chars=0)
+
+
+def test_pipeline_scores_candidate_pool_before_final_truncation() -> None:
+    from aise.pipeline import SearchPipeline
+
+    seen_pairs: list[tuple[str, str]] = []
+
+    class CandidateRetriever:
+        def search(self, query):
+            assert query.top_k == 100
+            return [
+                _result(str(i), f"m-{i}", i + 1, metadata={"body": str(i)})
+                for i in range(100)
+            ]
+
+    class RecordingEncoder:
+        def predict(self, pairs):
+            seen_pairs.extend(pairs)
+            return [float(i) for i in range(len(pairs))]
+
+    pipeline = SearchPipeline(
+        retriever=CandidateRetriever(),
+        ranker=CrossEncoderReranker(RecordingEncoder(), top_k=20),
+    )
+
+    results = pipeline.search(Query(text="q", top_k=100))
+
+    assert len(seen_pairs) == 100
+    assert len(results) == 20
+    assert [result.rank for result in results] == list(range(1, 21))
 
 
 # --- RankFusionReranker: fusion, identity, weight=0 baseline --------------------------------

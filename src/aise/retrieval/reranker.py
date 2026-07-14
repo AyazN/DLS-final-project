@@ -59,6 +59,8 @@ class CrossEncoderReranker:
     ) -> None:
         if text_strategy not in TEXT_STRATEGIES:
             raise ValueError(f"Unknown text_strategy: {text_strategy!r}, expected one of {TEXT_STRATEGIES}")
+        if max_text_chars <= 0:
+            raise ValueError("max_text_chars must be positive")
         self.model = model
         self.top_k = top_k
         self.document_text_key = document_text_key
@@ -69,8 +71,8 @@ class CrossEncoderReranker:
         """Build deterministic, natural-language reranking text.
 
         Deliberately avoids raw labeled fields (e.g. "Model ID:", "Tags:")
-        since those are out-of-distribution for an MS MARCO-trained
-        cross-encoder and were found to add noise rather than signal.
+        since those are out-of-distribution for an MS MARCO-trained model.
+        Text strategies keep task/tag inclusion explicit and testable.
         """
         metadata = candidate.metadata
         body = str(metadata.get(self.document_text_key, "")).strip() or candidate.snippet.strip()
