@@ -1,3 +1,5 @@
+"""Contract-compatible integration of the participant 05 retrieval metrics."""
+
 from __future__ import annotations
 
 import json
