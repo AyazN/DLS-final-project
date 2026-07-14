@@ -22,7 +22,7 @@ def rerank_diagnostics(
     reranker instance used in the pipeline. `qrels` is optional
     {query_text: {relevant_model_id, ...}}.
     """
-    reranked = list(reranker.rank(query, hybrid_results))
+    reranked = list(reranker.rank_all(query, hybrid_results))
     hybrid_rank_by_id = {r.doc_id: (r.rank, r.score) for r in hybrid_results}
     relevant = (qrels or {}).get(query.text, set())
 
