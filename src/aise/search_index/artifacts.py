@@ -108,6 +108,7 @@ def load_search_documents(
     artifacts: EmbeddingArtifacts,
     *,
     processed_metadata_path: str | Path | None = None,
+    max_body_chars: int | None = None,
 ) -> list[SearchDocument]:
     """Create row-aligned search documents for lexical retrieval and reranking.
 
@@ -115,6 +116,9 @@ def load_search_documents(
     processed dataset parquet to recover it; if metadata already contains a body,
     the extra parquet is unnecessary.
     """
+    if max_body_chars is not None and max_body_chars <= 0:
+        raise ValueError("max_body_chars must be positive when provided")
+
     try:
         import pandas as pd
     except ImportError as exc:
@@ -148,6 +152,8 @@ def load_search_documents(
         model_id = _first_value(source_row, ("model_id",), default=doc_id)
         title = _first_value(source_row, ("title", "name"), default=model_id)
         body = _first_value(source_row, body_columns)
+        if max_body_chars is not None:
+            body = body[:max_body_chars]
         tags = _parse_tags(source_row.get("tags"))
         documents.append(
             SearchDocument(
