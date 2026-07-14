@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import importlib.util
 from pathlib import Path
 from typing import Sequence
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from aise.contracts import EvaluationExample, Query, SearchDocument, SearchResult
 from aise.evaluation import RetrievalEvaluator
+from aise.pipeline import SearchPipeline
 from aise.retrieval import (
     BM25Retriever,
     CrossEncoderReranker,
@@ -16,6 +19,7 @@ from aise.retrieval import (
     ReciprocalRankFusion,
     format_query_for_encoder,
 )
+from aise.search_index import EmbeddingArtifacts, load_search_documents
 
 
 def document(position: int, body: str) -> SearchDocument:
@@ -55,6 +59,32 @@ def test_bm25_returns_structured_ranked_results() -> None:
     assert results[0].doc_id == "doc-0"
     assert results[0].model_id == "model-0"
     assert results[0].metadata["body"] == "football video analysis"
+
+
+def test_low_memory_documents_keep_reranking_metadata() -> None:
+    metadata = pd.DataFrame(
+        [
+            {
+                "model_id": "model-0",
+                "name": "Video model",
+                "body": "classifies videos",
+                "tags": ["vision", "video-classification"],
+                "pipeline_tag": "video-classification",
+            }
+        ]
+    )
+    artifacts = EmbeddingArtifacts(
+        embeddings=np.zeros((1, 2), dtype=np.float32),
+        ids=np.array(["doc-0"]),
+        metadata=metadata,
+        run_config={"model_name": "fake"},
+        directory=Path("."),
+    )
+
+    loaded = load_search_documents(artifacts, include_metadata=False)
+
+    assert loaded[0].metadata == {"pipeline_tag": "video-classification"}
+    assert loaded[0].tags == ("vision", "video-classification")
 
 
 class FakeEncoder:
@@ -129,6 +159,29 @@ def test_dense_labels_l2_values_as_lower_is_better() -> None:
 
     assert result_item.metadata["dense_metric"] == "l2"
     assert result_item.metadata["score_direction"] == "lower_is_better"
+
+
+def test_retrievers_propagate_task_tags_and_body() -> None:
+    doc = SearchDocument(
+        doc_id="doc-0",
+        title="Video model",
+        body="classifies videos",
+        model_id="model-0",
+        tags=("vision", "video-classification"),
+        metadata={"pipeline_tag": "video-classification"},
+    )
+
+    bm25_result = BM25Retriever([doc]).search(Query("videos", top_k=1))[0]
+    dense_result = DenseRetriever(
+        FakeIndex(positions=(0,)),
+        [doc],
+        FakeEncoder(),
+    ).search(Query("videos", top_k=1))[0]
+
+    for item in (bm25_result, dense_result):
+        assert item.metadata["pipeline_tag"] == "video-classification"
+        assert item.metadata["tags"] == ("vision", "video-classification")
+        assert item.metadata["body"] == "classifies videos"
 
 
 def test_rrf_removes_duplicates_and_regenerates_ranks() -> None:
@@ -222,6 +275,40 @@ def test_evaluator_handles_query_with_no_relevant_documents() -> None:
     assert report.metrics["ndcg@1"] == 0.0
 
 
+def test_evaluator_uses_final_reranked_order() -> None:
+    candidates = [
+        SearchResult("a", "relevant", 1.0, 1, "A", "", {"body": "short"}),
+        SearchResult(
+            "b",
+            "irrelevant",
+            0.5,
+            2,
+            "B",
+            "",
+            {"body": "much longer body"},
+        ),
+    ]
+
+    class FixedRetriever:
+        def search(self, query):
+            return candidates
+
+    pipeline = SearchPipeline(
+        retriever=FixedRetriever(),
+        ranker=CrossEncoderReranker(FakeCrossEncoder(), top_k=2),
+    )
+    report = RetrievalEvaluator(metric_k_values=(1, 2)).evaluate(
+        [EvaluationExample(Query("query", top_k=2), relevant_model_ids=("relevant",))],
+        pipeline,
+    )
+
+    assert report.details["per_query"][0]["retrieved_model_ids"] == [
+        "irrelevant",
+        "relevant",
+    ]
+    assert report.metrics["mrr"] == 0.5
+
+
 def test_empty_inputs_do_not_crash() -> None:
     assert BM25Retriever([]).search(Query("query")) == []
     assert DenseRetriever(FakeIndex(), [], FakeEncoder()).search(Query("query")) == []
@@ -231,6 +318,7 @@ def test_empty_inputs_do_not_crash() -> None:
     assert report.metrics == {}
 
 
+@pytest.mark.skipif(importlib.util.find_spec("faiss") is None, reason="faiss is optional")
 def test_faiss_flat_validates_search_and_round_trips(tmp_path: Path) -> None:
     pytest.importorskip("faiss")
     from aise.search_index import FaissFlatIndex

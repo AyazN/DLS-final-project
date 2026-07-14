@@ -28,6 +28,7 @@ class BM25Retriever:
             doc = self.documents[int(position)]
             metadata = dict(doc.metadata)
             metadata.setdefault("body", doc.body)
+            metadata.setdefault("tags", doc.tags)
             results.append(
                 SearchResult(
                     doc_id=doc.doc_id,

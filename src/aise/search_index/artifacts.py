@@ -148,7 +148,8 @@ def load_search_documents(
     documents: list[SearchDocument] = []
     artifact_ids = artifacts.ids.astype(str)
     for position, doc_id in enumerate(artifact_ids):
-        meta_row = metadata.iloc[position].to_dict() if include_metadata else {}
+        metadata_row = metadata.iloc[position]
+        meta_row = metadata_row.to_dict() if include_metadata else {}
         source_row = source.iloc[position]
         model_id = _first_value(source_row, ("model_id",), default=doc_id)
         title = _first_value(source_row, ("title", "name"), default=model_id)
@@ -156,6 +157,13 @@ def load_search_documents(
         if max_body_chars is not None:
             body = body[:max_body_chars]
         tags = _parse_tags(source_row.get("tags"))
+        # Reranking and the bundled qrels both depend on the task. Preserve this
+        # single compact field even when the notebook drops the rest of the
+        # artifact metadata in low-memory mode.
+        pipeline_tag = _first_value(metadata_row, ("pipeline_tag", "task")) or _first_value(
+            source_row, ("pipeline_tag", "task")
+        )
+        meta_row.setdefault("pipeline_tag", pipeline_tag)
         documents.append(
             SearchDocument(
                 doc_id=doc_id,
